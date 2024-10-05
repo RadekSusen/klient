@@ -2,6 +2,7 @@ package utb.fai;
 
 import java.io.*;
 import java.net.*;
+import java.util.Scanner;
 
 public class TelnetClient {
 
@@ -14,13 +15,81 @@ public class TelnetClient {
     }
 
     public void run() {
-        try {
-            Socket socket = new Socket(serverIp, port);
-            // Implementation of receiving and sending data
-            // Implement processing of input from the user and sending data to the server
-            // Implement response processing from the server and output to the console
-        } catch (IOException e) {
-            e.printStackTrace();
+        try (Socket socket = new Socket(serverIp, port)) {
+            System.out.println("Connected to " + serverIp + " on port " + port);
+
+            // Vlákno pro příjem zpráv
+            Thread receiveThread = new Thread(() -> {
+                try {
+                    InputStream input = socket.getInputStream();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+
+                    while (!socket.isClosed()) {
+                        if (input.available() > 0) {
+                            String response = reader.readLine();
+                            if (response != null) {
+                                System.out.println("Server: " + response);
+                            }
+                        }
+                        Thread.sleep(20); // Snížení zátěže CPU
+                    }
+                } catch (IOException | InterruptedException e) {
+                    System.out.println("Connection closed.");
+                }
+            });
+
+            // Vlákno pro odesílání zpráv
+            Thread sendThread = new Thread(() -> {
+                try {
+                    OutputStream output = socket.getOutputStream();
+                    PrintWriter writer = new PrintWriter(output, true);
+                    Scanner scanner = new Scanner(System.in);
+
+                    while (!socket.isClosed()) {
+                        if (scanner.hasNextLine()) {
+                            String message = scanner.nextLine();
+
+                            // Pokud uživatel zadá "/QUIT", ukončíme spojení
+                            if (message.equalsIgnoreCase("/QUIT")) {
+                                writer.println(message);
+                                System.out.println("Closing connection...");
+                                socket.close();
+                                break;
+                            }
+
+                            // Odeslání zprávy na server
+                            writer.println(message);
+                        }
+                        Thread.sleep(20); // Snížení zátěže CPU
+                    }
+                } catch (IOException | InterruptedException e) {
+                    System.out.println("Connection closed.");
+                }
+            });
+
+            // Spuštění obou vláken
+            receiveThread.start();
+            sendThread.start();
+
+            // Čekání na dokončení vláken
+            receiveThread.join();
+            sendThread.join();
+
+        } catch (IOException | InterruptedException e) {
+            System.err.println("Error: " + e.getMessage());
         }
+    }
+
+    public static void main(String[] args) {
+        if (args.length < 2) {
+            System.out.println("Usage: java TelnetClient <IP Address> <Port>");
+            return;
+        }
+
+        String ipAddress = args[0];
+        int port = Integer.parseInt(args[1]);
+
+        TelnetClient client = new TelnetClient(ipAddress, port);
+        client.run();
     }
 }
