@@ -16,7 +16,7 @@ public class App {
 
             // Vytvoření instance TelnetClient s předanou IP adresou a portem
             TelnetClient telnetClient = new TelnetClient(ipAddress, port);
-            
+
             // Spuštění telnet klienta
             telnetClient.run();
 
