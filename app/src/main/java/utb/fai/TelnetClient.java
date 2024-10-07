@@ -15,10 +15,8 @@ public class TelnetClient {
 
     public void run() {
         Thread receiveThread = new Thread(() -> {
-            // Implementation for receiving data
         });
         Thread sendThread = new Thread(() -> {
-            // Implementation for sending data
         });
 
         try (Socket socket = new Socket(serverIp, port);
