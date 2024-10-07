@@ -14,11 +14,42 @@ public class TelnetClient {
     }
 
     public void run() {
-        try {
-            Socket socket = new Socket(serverIp, port);
-            // Implementation of receiving and sending data
-            // Implement processing of input from the user and sending data to the server
-            // Implement response processing from the server and output to the console
+        Thread receiveThread = new Thread(() -> {
+        });
+        Thread sendThread = new Thread(() -> {
+        });
+
+        try (Socket socket = new Socket(serverIp, port);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in))) {
+            while (true) {
+                try {
+                    String message = stdIn.readLine();
+                    if ("/QUIT".equalsIgnoreCase(message)) {
+                        break;
+                    }
+                    out.println(message);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            receiveThread.start();
+            sendThread.start();
+            try {
+                sendThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            try {
+                out.close();
+                in.close();
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
