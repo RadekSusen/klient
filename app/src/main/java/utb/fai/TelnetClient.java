@@ -8,6 +8,7 @@ public class TelnetClient {
 
     private String serverIp;
     private int port;
+    private volatile boolean running = true; // Sdílený stav pro ukončení vláken
 
     public TelnetClient(String serverIp, int port) {
         this.serverIp = serverIp;
@@ -24,7 +25,7 @@ public class TelnetClient {
                     InputStream input = socket.getInputStream();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
-                    while (!socket.isClosed()) {
+                    while (running && !socket.isClosed()) {
                         if (input.available() > 0) {
                             String response = reader.readLine();
                             if (response != null) {
@@ -45,15 +46,16 @@ public class TelnetClient {
                     PrintWriter writer = new PrintWriter(output, true);
                     Scanner scanner = new Scanner(System.in);
 
-                    while (!socket.isClosed()) {
+                    while (running && !socket.isClosed()) {
                         if (scanner.hasNextLine()) {
                             String message = scanner.nextLine();
 
                             // Pokud uživatel zadá "/QUIT", ukončíme spojení
                             if (message.equalsIgnoreCase("/QUIT")) {
                                 writer.println(message);
+                                running = false;  // Nastavení příznaku pro ukončení
+                                socket.close();    // Zavření soketu
                                 System.out.println("Closing connection...");
-                                socket.close();
                                 break;
                             }
 
@@ -78,18 +80,5 @@ public class TelnetClient {
         } catch (IOException | InterruptedException e) {
             System.err.println("Error: " + e.getMessage());
         }
-    }
-
-    public static void main(String[] args) {
-        if (args.length < 2) {
-            System.out.println("Usage: java TelnetClient <IP Address> <Port>");
-            return;
-        }
-
-        String ipAddress = args[0];
-        int port = Integer.parseInt(args[1]);
-
-        TelnetClient client = new TelnetClient(ipAddress, port);
-        client.run();
     }
 }
